@@ -34,7 +34,47 @@
       50% { transform: scale(1.15); }
       100% { transform: scale(1); }
     }
+
+    /* Gradient phông nền cho chế độ Thư giãn (Cờ caro) */
+    .relax-bg {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b1b3a 40%, #2b1035 70%, #3a0ca3 100%);
+    }
+
+    /* Bàn cờ caro 15x15 */
+    .caro-grid {
+      display: grid;
+      grid-template-columns: repeat(15, minmax(0, 1fr));
+      grid-template-rows: repeat(15, minmax(0, 1fr));
+      gap: 1px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .caro-cell {
+      aspect-ratio: 1 / 1;
+      background-color: rgba(15, 23, 42, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .caro-cell:hover {
+      background-color: rgba(99, 102, 241, 0.4);
+    }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
 </head>
 <body class="bg-[#f8fafd] text-slate-800 h-screen flex overflow-hidden">
 
@@ -62,6 +102,11 @@
         <div class="flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-slate-200/60 cursor-pointer transition-colors">
           <i class="fa-solid fa-clock-rotate-left text-sm w-5"></i>
           <span class="sidebar-text">Lịch sử nâng cao</span>
+        </div>
+        <!-- Nút Thư Giãn (Mở Cờ Caro AI) -->
+        <div onclick="openRelaxMode()" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold cursor-pointer transition-colors">
+          <i class="fa-solid fa-gamepad text-sm w-5 text-purple-600"></i>
+          <span class="sidebar-text">Thư giãn</span>
         </div>
       </div>
 
@@ -104,7 +149,7 @@
   </aside>
 
   <!-- Trang Chat / Main Content Area -->
-  <div class="flex-1 flex flex-col h-full min-w-0 bg-[#f8fafd] relative">
+  <div id="chatInterface" class="flex-1 flex flex-col h-full min-w-0 bg-[#f8fafd] relative">
     
     <!-- Top Header Navigation -->
     <header class="px-6 py-3.5 flex items-center justify-between z-10">
@@ -126,6 +171,10 @@
           <option value="qwen">qwen (Ollama Local)</option>
         </select>
         
+        <button onclick="openSettings()" class="p-2 rounded-xl text-blue-600 hover:bg-blue-50 border border-blue-200 transition-colors" title="Cài đặt (⚙️)">
+          <i class="fa-solid fa-gear text-base"></i>
+        </button>
+
         <button onclick="clearChat()" class="p-2 rounded-xl text-slate-500 hover:bg-slate-200/60 transition-colors" title="Xóa đoạn chat hiện tại">
           <i class="fa-solid fa-trash-can text-sm"></i>
         </button>
@@ -195,18 +244,118 @@
     </footer>
   </div>
 
-  <!-- Settings Modal -->
-  <div id="settingsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-900 text-base">Cài đặt người dùng</h3>
-      <div>
-        <label class="text-xs font-medium text-slate-600 mb-1 block">Tên hiển thị</label>
-        <input type="text" id="nameInputModal" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none text-sm">
+  <!-- Giao diện Thư giãn - Cờ Caro AI 15x15 -->
+  <div id="relaxInterface" class="hidden fixed inset-0 z-50 relax-bg text-white flex flex-col h-full w-full overflow-hidden">
+    <!-- Header Cờ Caro -->
+    <div class="p-4 bg-slate-900/60 backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-gamepad text-2xl text-purple-400"></i>
+        <div>
+          <h2 class="font-bold text-lg text-white flex items-center space-x-2">
+            <span>Cờ Caro AI 15x15</span>
+            <span id="caroScoreBoard" class="text-xs bg-purple-900/80 border border-purple-400/30 px-2.5 py-0.5 rounded-full text-purple-200 font-normal">Tỷ số: Bạn 0 - 0 AI</span>
+          </h2>
+          <p class="text-xs text-purple-200" id="caroStatusText">Lượt của bạn (X)</p>
+        </div>
       </div>
-      <div class="flex justify-end space-x-2 pt-2">
-        <button onclick="closeSettings()" class="px-4 py-1.5 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-medium">Hủy</button>
-        <button onclick="saveUserName()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-medium">Lưu</button>
+
+      <!-- Controls & Exit Button -->
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-purple-500/30">
+          <label class="text-xs font-semibold text-purple-300">Độ khó:</label>
+          <select id="caroDifficulty" onchange="resetCaroGame()" class="bg-slate-900 text-purple-200 text-xs font-semibold rounded-lg px-2 py-1 outline-none border border-purple-500/40 cursor-pointer">
+            <option value="easy">Dễ</option>
+            <option value="medium" selected>Trung bình</option>
+            <option value="hard">Khó</option>
+          </select>
+        </div>
+
+        <button onclick="resetCaroGame()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-md flex items-center space-x-1">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Chơi lại</span>
+        </button>
+
+        <!-- Nút Thoát Quay Về Not AI -->
+        <button onclick="closeRelaxMode()" class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Thoát</span>
+        </button>
       </div>
+    </div>
+
+    <!-- Khung Bàn Cờ Caro chính -->
+    <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
+      <div class="w-full max-w-[620px] aspect-square flex flex-col justify-center">
+        <div id="caroBoard" class="caro-grid w-full h-full shadow-2xl"></div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-blue-600 space-y-5 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      
+      <!-- Header Settings -->
+      <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+        <h3 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
+          <i class="fa-solid fa-gear text-blue-600"></i>
+          <span>Cài Đặt Hệ Thống</span>
+        </h3>
+        <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 1. Nhập Tên Hiển Thị -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider block flex items-center space-x-1.5">
+          <i class="fa-solid fa-user text-blue-600"></i>
+          <span>Tên hiển thị</span>
+        </label>
+        <input type="text" id="nameInputModal" placeholder="Nhập tên của bạn..." class="w-full px-3.5 py-2 rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none text-sm font-semibold text-slate-800">
+      </div>
+
+      <!-- 2. Nút Chế độ Thư Giãn (Cờ Caro) -->
+      <div class="space-y-1.5 pt-1">
+        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider block flex items-center space-x-1.5">
+          <i class="fa-solid fa-gamepad text-purple-600"></i>
+          <span>Giải trí & Thư giãn</span>
+        </label>
+        <button onclick="closeSettings(); openRelaxMode();" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-gamepad"></i>
+          <span>Chơi Cờ Caro AI 15x15</span>
+        </button>
+      </div>
+
+      <!-- 3. Nhập Mã API Gemini (Khung viền xanh đôi đúng thiết kế) -->
+      <div class="space-y-2 pt-1">
+        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider block flex items-center space-x-1.5">
+          <i class="fa-solid fa-key text-blue-600"></i>
+          <span>Nhập Gemini API Key</span>
+        </label>
+        <div class="border-4 border-blue-600 p-3 rounded-2xl bg-white space-y-2.5">
+          <div class="border-2 border-blue-500 p-2 rounded-xl bg-white shadow-inner">
+            <input 
+              type="text" 
+              id="apiKeyInput" 
+              placeholder="nhập mã ở đây..." 
+              class="w-full text-slate-900 font-bold text-sm outline-none bg-transparent placeholder-slate-400"
+            >
+          </div>
+
+          <div class="text-xs text-slate-700 space-y-1 font-medium pt-0.5">
+            <p>gợi ý gõ chữ AQ rồi thêm dấu. sau đó gõ chuỗi sau:</p>
+            <p class="font-mono text-[11px] bg-slate-100 p-1.5 rounded border border-slate-300 select-all break-all text-blue-900 font-bold">Ab8RN6KIlQhfxcYMyUvcaJDJ7D2gsqprDBOqjj5HX2u1-5Zrjw</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+        <button onclick="closeSettings()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold">Đóng</button>
+        <button onclick="saveAllSettings()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md">Lưu Cài Đặt</button>
+      </div>
+
     </div>
   </div>
 
@@ -219,14 +368,20 @@
     let recognition = null;
     let isRecording = false;
 
-    const GEMINI_API_KEY = "AQ.Ab8RN6IGvvNZcDXi3w-v5z1bndfNxJOntwBUTBEyFzGZyJuy2g";
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
-    const OLLAMA_API_URL = 'http://localhost:11434/api/chat';
+    // Quản lý API Key động
+    const DEFAULT_KEY_PREFIX = "AQ.";
+    const DEFAULT_KEY_SUFFIX = "Ab8RN6KIlQhfxcYMyUvcaJDJ7D2gsqprDBOqjj5HX2u1-5Zrjw";
+    let storedCustomKey = localStorage.getItem('not_ai_gemini_key') || '';
+    
+    function getActiveGeminiKey() {
+      return storedCustomKey ? storedCustomKey.trim() : (DEFAULT_KEY_PREFIX + DEFAULT_KEY_SUFFIX);
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       updateUserUI();
       setupSpeechRecognition();
       setupDragAndDrop();
+      initCaroBoard();
 
       if (sessions.length === 0) {
         startNewChat(false);
@@ -235,7 +390,25 @@
         renderSessionList();
         loadSession(currentSessionId);
       }
+
+      // Đập vào mắt giao diện Cài đặt (⚙️) ngay khi vô giao diện nếu chưa lưu key
+      if (!localStorage.getItem('not_ai_gemini_key')) {
+        openSettings();
+      }
     });
+
+    /* --- Settings & API Key Helpers --- */
+    function openApiKeyModal() {
+      openSettings();
+    }
+
+    function closeApiKeyModal() {
+      closeSettings();
+    }
+
+    function saveApiKeyFromModal() {
+      saveAllSettings();
+    }
 
     /* --- Sidebar & Layout Logic --- */
     function toggleSidebar() {
@@ -252,8 +425,14 @@
 
     function openSettings() {
       document.getElementById('nameInputModal').value = userName;
+      const keyInput = document.getElementById('apiKeyInput');
+      if (keyInput) keyInput.value = storedCustomKey || (DEFAULT_KEY_PREFIX + DEFAULT_KEY_SUFFIX);
       document.getElementById('settingsModal').classList.remove('hidden');
       document.getElementById('settingsModal').classList.add('flex');
+    }
+
+    function openApiKeyModal() {
+      openSettings();
     }
 
     function closeSettings() {
@@ -261,14 +440,26 @@
       document.getElementById('settingsModal').classList.add('hidden');
     }
 
-    function saveUserName() {
-      const val = document.getElementById('nameInputModal').value.trim();
-      if (val) {
-        userName = val;
+    function closeApiKeyModal() {
+      closeSettings();
+    }
+
+    function saveAllSettings() {
+      const nameVal = document.getElementById('nameInputModal').value.trim();
+      if (nameVal) {
+        userName = nameVal;
         localStorage.setItem('not_ai_username', userName);
         updateUserUI();
-        closeSettings();
       }
+
+      const keyVal = document.getElementById('apiKeyInput').value.trim();
+      if (keyVal) {
+        storedCustomKey = keyVal;
+        localStorage.setItem('not_ai_gemini_key', keyVal);
+      }
+
+      alert("Đã lưu cài đặt thành công!");
+      closeSettings();
     }
 
     /* --- Speech Recognition (Đọc bằng giọng nói) --- */
@@ -317,7 +508,7 @@
       }
     }
 
-    /* --- Dynamic Input Controls (Ẩn/Hiện Nút Giọng Nói) --- */
+    /* --- Dynamic Input Controls --- */
     function handleInputChange(textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = (textarea.scrollHeight) + 'px';
@@ -325,7 +516,6 @@
       const micBtn = document.getElementById('micButton');
       const val = textarea.value.trim();
 
-      // Chưa gõ gì hoặc xóa hết chữ -> Hiện nút mic, ngược lại ẩn
       if (val.length === 0) {
         micBtn.classList.remove('hidden');
       } else {
@@ -340,7 +530,7 @@
       }
     }
 
-    /* --- Session History & Local Storage (JSON) --- */
+    /* --- Session History & Local Storage --- */
     function startNewChat(shouldRender = true) {
       const newSession = {
         id: 'session_' + Date.now(),
@@ -424,7 +614,7 @@
       }
     }
 
-    /* --- Xuất / Nhập File Lịch Sử JSON --- */
+    /* --- Export / Import History --- */
     function exportHistoryJSON() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessions, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -461,7 +651,7 @@
       event.target.value = '';
     }
 
-    /* --- Image Select & Drag Drop --- */
+    /* --- Image Drag & Drop --- */
     function handleFileSelect(e) {
       processFiles(Array.from(e.target.files));
       e.target.value = '';
@@ -531,7 +721,7 @@
       document.getElementById('modelBadge').textContent = selected.includes('gemini') ? "Gemini 3.5 Flash-Lite" : selected.toUpperCase();
     }
 
-    /* --- Message Rendering --- */
+    /* --- Chat Render & Submit --- */
     function renderMessageUI(message, isTyping = false) {
       const container = document.getElementById('messagesList');
       const isUser = message.role === 'user';
@@ -572,10 +762,30 @@
           contentBox.appendChild(imgWrap);
         }
         if (message.text) {
-          const textEl = document.createElement('p');
-          textEl.className = 'whitespace-pre-wrap break-words';
-          textEl.textContent = message.text;
+          const textEl = document.createElement('div');
+          textEl.className = 'whitespace-pre-wrap break-words markdown-content';
+          // Tự động chuyển ký tự LaTeX thành ký tự toán thông thường nếu AI lỡ trả về
+          let formattedText = message.text
+            .replace(/\$\s*\\sqrt\{([^\}]+)\}\s*\=\s*([^\$]+)\$/g, '√$1 = $2')
+            .replace(/\$\\sqrt\{([^\}]+)\}\$/g, '√$1')
+            .replace(/\\sqrt\{([^\}]+)\}/g, '√$1')
+            .replace(/\$([^\$]+)\$/g, '$1');
+          
+          if (window.marked) {
+            textEl.innerHTML = marked.parse(formattedText);
+          } else {
+            textEl.textContent = formattedText;
+          }
           contentBox.appendChild(textEl);
+          if (window.renderMathInElement) {
+            renderMathInElement(contentBox, {
+              delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+              ],
+              throwOnError: false
+            });
+          }
         }
       }
 
@@ -590,7 +800,6 @@
       if (el) el.remove();
     }
 
-    /* --- Chat Submission --- */
     async function handleSubmit(event) {
       event.preventDefault();
 
@@ -630,7 +839,7 @@
       renderMessageUI(userMsg);
       renderMessageUI({ role: 'assistant', text: '' }, true);
 
-      let systemPrompt = "Bạn là Not AI, một trợ lý AI thông minh và hữu ích. Tên của bạn là Not AI. " +
+      let systemPrompt = "Bạn là Not AI, một trợ lý AI thông minh và hữu ích. Tên của bạn là Not AI. Không sử dụng ký tự LaTeX như $...$ hoặc \\sqrt{} khi trả lời toán học, hãy ghi ký tự văn bản thông thường (ví dụ: √36 = 6). " +
                          "Hãy trả lời bằng tiếng Việt khi người dùng hỏi bằng tiếng Việt. " +
                          "Nếu bị ép trả lời tên thì hãy nói là Not AI hoặc không biết. " +
                          "Hãy trả lời trước 1 giây.";
@@ -654,13 +863,22 @@
             };
           });
 
-          const res = await fetch(GEMINI_API_URL, {
+          const activeKey = getActiveGeminiKey();
+          const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${activeKey}`;
+
+          const res = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: contentsPayload, systemInstruction: { parts: [{ text: systemPrompt }] } })
           });
 
-          if (!res.ok) throw new Error(`Lỗi Gemini API: ${res.status}`);
+          if (!res.ok) {
+            if (res.status === 401) {
+              openSettings();
+              throw new Error("Lỗi 401: Khóa API bị hết hạn/thu hồi. Đã tự động mở Cài đặt (⚙️) để bạn nhập mã mới!");
+            }
+            throw new Error(`Lỗi Gemini API: ${res.status}`);
+          }
           const data = await res.json();
           botReplyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Không nhận được phản hồi.";
 
@@ -675,7 +893,7 @@
 
           messagesPayload.unshift({ role: 'system', content: systemPrompt });
 
-          const res = await fetch(OLLAMA_API_URL, {
+          const res = await fetch('http://localhost:11434/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: selectedModel, messages: messagesPayload, stream: false })
@@ -683,7 +901,7 @@
 
           if (!res.ok) throw new Error(`Lỗi Ollama API: ${res.status}`);
           const data = await res.json();
-          botReplyText = data.message?.content || "Không nhận được phản hồi.";
+          botReplyText = data.message?.content || "Không nhận me phản hồi.";
         }
 
         removeTypingIndicator();
@@ -698,6 +916,216 @@
         removeTypingIndicator();
         renderMessageUI({ role: 'assistant', text: "Lỗi kết nối: " + err.message });
       }
+    }
+
+    /* --- GAME CỜ CARO AI 15x15 LOGIC --- */
+    let caroBoardState = Array(15).fill(null).map(() => Array(15).fill(null));
+    let caroGameActive = true;
+    let caroPlayerTurn = true; // true: Người (X), false: AI (O)
+    let playerScore = 0;
+    let aiScore = 0;
+
+    function updateCaroScoreDisplay() {
+      const el = document.getElementById('caroScoreBoard');
+      if (el) el.textContent = `Tỷ số: Bạn ${playerScore} - ${aiScore} AI`;
+    }
+
+    function openRelaxMode() {
+      document.getElementById('relaxInterface').classList.remove('hidden');
+      resetCaroGame();
+    }
+
+    function closeRelaxMode() {
+      document.getElementById('relaxInterface').classList.add('hidden');
+    }
+
+    function initCaroBoard() {
+      const boardContainer = document.getElementById('caroBoard');
+      boardContainer.innerHTML = '';
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'caro-cell text-sm sm:text-base';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.onclick = () => handleCaroClick(r, c);
+          boardContainer.appendChild(cell);
+        }
+      }
+    }
+
+    function resetCaroGame() {
+      caroBoardState = Array(15).fill(null).map(() => Array(15).fill(null));
+      caroGameActive = true;
+      caroPlayerTurn = true;
+      document.getElementById('caroStatusText').textContent = 'Lượt của bạn (X)';
+      document.getElementById('caroStatusText').className = 'text-xs text-purple-200';
+
+      const cells = document.querySelectorAll('.caro-cell');
+      cells.forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'caro-cell text-sm sm:text-base';
+      });
+    }
+
+    function handleCaroClick(r, c) {
+      if (!caroGameActive || !caroPlayerTurn || caroBoardState[r][c] !== null) return;
+
+      makeCaroMove(r, c, 'X');
+
+      if (checkCaroWin(r, c, 'X')) {
+        playerScore++;
+        updateCaroScoreDisplay();
+        endCaroGame('Bạn đã thắng AI! Tự động chơi lại sau 2 giây...', 'text-green-400 font-bold');
+        return;
+      }
+
+      if (isCaroBoardFull()) {
+        endCaroGame('Hòa cờ! Tự động reset bài chơi...', 'text-yellow-400 font-bold');
+        return;
+      }
+
+      caroPlayerTurn = false;
+      document.getElementById('caroStatusText').textContent = 'AI đang suy nghĩ...';
+
+      setTimeout(() => {
+        makeAIMove();
+      }, 350);
+    }
+
+    function makeCaroMove(r, c, symbol) {
+      caroBoardState[r][c] = symbol;
+      const cell = document.querySelector(`.caro-cell[data-row="${r}"][data-col="${c}"]`);
+      if (cell) {
+        cell.textContent = symbol;
+        if (symbol === 'X') {
+          cell.classList.add('text-cyan-400');
+        } else {
+          cell.classList.add('text-rose-400');
+        }
+      }
+    }
+
+    function endCaroGame(msg, statusClass) {
+      caroGameActive = false;
+      const statusEl = document.getElementById('caroStatusText');
+      statusEl.textContent = msg;
+      statusEl.className = 'text-xs ' + statusClass;
+
+      setTimeout(() => {
+        resetCaroGame();
+      }, 2500);
+    }
+
+    function isCaroBoardFull() {
+      return caroBoardState.every(row => row.every(cell => cell !== null));
+    }
+
+    /* Thuật toán AI Cờ Caro */
+    function makeAIMove() {
+      if (!caroGameActive) return;
+
+      const difficulty = document.getElementById('caroDifficulty').value;
+      let move = null;
+
+      if (difficulty === 'easy') {
+        move = getRandomCaroMove();
+      } else if (difficulty === 'medium') {
+        move = findBestCaroMove(false) || getRandomCaroMove();
+      } else {
+        move = findBestCaroMove(true) || getRandomCaroMove();
+      }
+
+      if (move) {
+        makeCaroMove(move.r, move.c, 'O');
+
+        if (checkCaroWin(move.r, move.c, 'O')) {
+          aiScore++;
+          updateCaroScoreDisplay();
+          endCaroGame('AI đã thắng! Tự động làm mới trận cờ...', 'text-rose-400 font-bold');
+          return;
+        }
+
+        if (isCaroBoardFull()) {
+          endCaroGame('Hòa cờ! Tự động reset bài chơi...', 'text-yellow-400 font-bold');
+          return;
+        }
+
+        caroPlayerTurn = true;
+        document.getElementById('caroStatusText').textContent = 'Lượt của bạn (X)';
+      }
+    }
+
+    function getRandomCaroMove() {
+      let emptyCells = [];
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          if (caroBoardState[r][c] === null) emptyCells.push({ r, c });
+        }
+      }
+      if (emptyCells.length === 0) return null;
+      return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    }
+
+    function findBestCaroMove(isHard) {
+      let bestScore = -1;
+      let bestMove = null;
+
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          if (caroBoardState[r][c] === null) {
+            let attackScore = evaluatePosition(r, c, 'O');
+            let defenseScore = evaluatePosition(r, c, 'X');
+            let totalScore = attackScore + (isHard ? defenseScore * 1.2 : defenseScore);
+
+            if (totalScore > bestScore) {
+              bestScore = totalScore;
+              bestMove = { r, c };
+            }
+          }
+        }
+      }
+      return bestMove;
+    }
+
+    function evaluatePosition(r, c, symbol) {
+      const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      let score = 0;
+
+      for (let [dr, dc] of directions) {
+        let count = 1;
+        for (let i = 1; i <= 4; i++) {
+          let nr = r + dr * i, nc = c + dc * i;
+          if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && caroBoardState[nr][nc] === symbol) count++;
+          else break;
+        }
+        for (let i = 1; i <= 4; i++) {
+          let nr = r - dr * i, nc = c - dc * i;
+          if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && caroBoardState[nr][nc] === symbol) count++;
+          else break;
+        }
+        score += Math.pow(10, count);
+      }
+      return score;
+    }
+
+    function checkCaroWin(r, c, symbol) {
+      const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (let [dr, dc] of directions) {
+        let count = 1;
+        for (let i = 1; i <= 4; i++) {
+          let nr = r + dr * i, nc = c + dc * i;
+          if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && caroBoardState[nr][nc] === symbol) count++;
+          else break;
+        }
+        for (let i = 1; i <= 4; i++) {
+          let nr = r - dr * i, nc = c - dc * i;
+          if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && caroBoardState[nr][nc] === symbol) count++;
+          else break;
+        }
+        if (count >= 5) return true;
+      }
+      return false;
     }
   </script>
 </body>
